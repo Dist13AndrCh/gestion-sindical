@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Sindical - Reportes y Gestión</title>
+    
+    <!-- Librerías Externas -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #050505;
+            --card: #0d0d0d;
+            --accent: #c41c1c;
+            --text: #d1d1d1;
+            --border: #1a1a1a;
+            --glow: rgba(196, 28, 28, 0.4);
+            --radius: 12px;
+            --success: #1b5e20;
+            --warning: #fbc02d;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; outline: none; }
+        body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+        /* Impresión - Ajustes para Oficio */
+        @media print {
+            @page { size: legal; margin: 1cm; }
+            body { background: white; color: black; }
+            nav, .nav-links, button, .search-box, .stat-grid, #splash, .no-print, #loading, .tabs-selector, .year-chips, #modal-overlay, #confirm-overlay, .penguin-btn, #login-modal, #toast-container { display: none !important; }
+            .container { display: block !important; width: 100%; max-width: none; padding: 0; margin: 0; }
+            .card { border: none !important; box-shadow: none !important; background: white !important; color: black !important; padding: 0 !important; }
+            
+            .print-header { display: block !important; text-align: center; margin-bottom: 20px; border-bottom: 2px solid black; padding-bottom: 10px; }
+            .print-header h1 { font-size: 18pt; color: black; text-transform: uppercase; }
+            
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt; }
+            th, td { border: 1px solid #000; padding: 6px; text-align: center; }
+            th { background: #eee !important; color: black !important; }
+            
+            .report-section-title { color: black !important; border-bottom: 1px solid black !important; margin-top: 20px !important; font-size: 12pt !important; }
+            
+            .print-footer { display: block !important; margin-top: 50px; display: flex; justify-content: space-around; }
+            .signature { border-top: 1px solid black; width: 220px; text-align: center; font-size: 9pt; margin-top: 40px; }
+        }
+
+        .print-header, .print-footer { display: none; }
+        .report-section-title { margin-top: 25px; margin-bottom: 10px; color: var(--accent); font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+
+        #splash { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5000; }
+        .bat-logo { font-size: 2rem; font-weight: 900; letter-spacing: 4px; color: var(--accent); text-shadow: 0 0 20px var(--accent); margin-bottom: 3rem; text-transform: uppercase; text-align: center; }
+
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: var(--card); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        .nav-links { display: flex; gap: 8px; flex-wrap: wrap; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; display: none; }
+
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; transition: 0.3s ease; position: relative; }
+        .card:not(.no-hover):hover { border-color: var(--accent); box-shadow: 0 0 15px var(--glow); }
+        
+        h2 { color: var(--accent); font-size: 0.85rem; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 1.5rem; border-left: 3px solid var(--accent); padding-left: 12px; }
+
+        input, select, textarea { width: 100%; background: #000; border: 1px solid var(--border); color: #fff; padding: 12px 15px; border-radius: 10px; margin-bottom: 12px; font-size: 1rem; }
+        input:focus, textarea:focus { border-color: var(--accent); }
+        
+        button { background: #111; color: #fff; border: 1px solid var(--border); padding: 12px 24px; border-radius: 10px; cursor: pointer; text-transform: uppercase; font-weight: bold; transition: 0.3s; font-size: 0.75rem; letter-spacing: 1px; }
+        button:hover { background: var(--accent); border-color: transparent; transform: translateY(-2px); }
+        .btn-red { background: var(--accent); border: none; }
+        .btn-ghost { background: transparent; border: 1px solid var(--border); }
+        .btn-green { background: var(--success); border: none; }
+
+        #modal-overlay, #confirm-overlay, #login-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9000; display: none; justify-content: center; align-items: center; }
+        .modal-card { background: var(--card); border: 1px solid var(--accent); border-radius: var(--radius); width: 90%; max-width: 450px; padding: 2rem; box-shadow: 0 0 30px var(--glow); }
+
+        .tabs-selector { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .tab-btn { border: none; background: transparent; color: #555; padding: 8px 15px; font-size: 0.8rem; cursor: pointer; }
+        .tab-btn.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+        .search-box { position: relative; }
+        .drop-list { position: absolute; top: 100%; left: 0; right: 0; background: #080808; border: 1px solid var(--accent); border-radius: 0 0 10px 10px; max-height: 200px; overflow-y: auto; z-index: 2000; display: none; }
+        .drop-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #111; }
+        .drop-item:hover { background: var(--accent); color: white; }
+
+        .notice-card { 
+            background: linear-gradient(145deg, #0f0f0f, #080808);
+            border: 1px solid var(--border); 
+            border-radius: 16px; 
+            padding: 1.5rem; 
+            margin-bottom: 1.2rem; 
+            border-left: 4px solid var(--accent);
+            position: relative;
+        }
+        .notice-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #1a1a1a; padding-bottom: 10px; }
+        .notice-title { font-weight: 800; color: #fff; font-size: 1.2rem; }
+        .notice-body { color: #ccc; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
+        .delete-notice-btn { position: absolute; top: 10px; right: 10px; background: transparent; border: none; color: #444; font-size: 0.9rem; cursor: pointer; }
+
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #111; padding: 1.5rem; border-radius: 10px; border-left: 4px solid var(--accent); text-align: center; }
+        .stat-val { font-size: 1.8rem; font-weight: 800; color: #fff; margin-top: 5px; }
+
+        .months-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 10px; }
+        .month-box { padding: 10px; text-align: center; border-radius: 8px; background: #151515; border: 1px solid var(--border); font-size: 0.7rem; font-weight: 500; text-transform: uppercase; }
+        .month-box.paid { background: var(--success); color: #fff; border-color: #2e7d32; }
+        .month-box.pending { background: #222; color: #555; border-style: dashed; }
+
+        .item-row { display: flex; justify-content: space-between; align-items: center; background: #0a0a0a; padding: 10px; border-radius: 8px; margin-bottom: 5px; border: 1px solid #1a1a1a; font-size: 0.9rem; }
+        
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 10000; }
+        .toast { background: #000; color: #fff; border: 1px solid var(--accent); padding: 15px 25px; border-radius: 10px; margin-top: 10px; box-shadow: 0 0 15px var(--glow); transition: 0.3s; }
+
+        .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 11000; display: none; }
+
+        .rep-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #0a0a0a; border: 1px solid var(--border); }
+        .rep-table th, .rep-table td { border: 1px solid var(--border); padding: 8px; text-align: center; font-size: 0.85rem; }
+        .rep-table th { background: #111; color: var(--accent); }
+        
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .badge-paid { background: var(--success); color: white; }
+        .badge-debt { background: var(--accent); color: white; }
+
+        /* Estilos Nuevos */
+        .penguin-btn { position: fixed; bottom: 20px; right: 20px; background: transparent; border: none; font-size: 2rem; cursor: pointer; opacity: 0.3; transition: 0.3s; z-index: 6000; }
+        .penguin-btn:hover { opacity: 1; transform: scale(1.2); }
+
+        .hist-year-row { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; font-size: 0.8rem; }
+        .hist-label { width: 50px; font-weight: bold; color: var(--accent); }
+        .hist-grid { display: flex; gap: 2px; flex: 1; }
+        .hist-cell { flex: 1; height: 20px; background: #222; border-radius: 2px; display: flex; justify-content: center; align-items: center; font-size: 10px; color: #555; }
+        .hist-cell.paid { background: var(--success); color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div id="loading" class="loading-overlay">Cargando Sistema...</div>
+
+    <!-- MODALES -->
+    <div id="confirm-overlay">
+        <div class="modal-card" style="text-align: center;">
+            <h2 id="confirm-title" style="border:none; padding:0;">Confirmar</h2>
+            <p id="confirm-message" style="color: #aaa; margin: 20px 0;">¿Está seguro?</p>
+            <div style="display: flex; gap: 10px;">
+                <button id="confirm-btn-yes" class="btn-red" style="flex: 1;">Aceptar</button>
+                <button onclick="closeConfirm()" class="btn-ghost" style="flex: 1;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-overlay">
+        <div class="modal-card">
+            <h2 id="modal-title">Editar Socio</h2>
+            <input type="text" id="modal-edit-input" placeholder="Nombre completo" class="nav-input">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="saveEditSocio()" class="btn-red" style="flex: 1;">Guardar</button>
+                <button onclick="closeModal()" class="btn-ghost" style="flex: 1;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-modal">
+        <div class="modal-card">
+            <h2 style="border:none; text-align: center;">Acceso Directiva</h2>
+            <input type="email" id="login-email" placeholder="Correo Electrónico" class="nav-input">
+            <input type="password" id="login-pass" placeholder="Contraseña" class="nav-input">
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button onclick="performLogin()" class="btn-red" style="flex: 1;">Ingresar</button>
+                <button onclick="toggleLoginModal(false)" class="btn-ghost" style="flex: 1;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INGRESO -->
+    <div id="splash">
+        <div class="bat-logo">Control Sindical<br>Servicio Online</div>
+        <div style="width: 300px;">
+            <button onclick="enterAs('user')" style="width: 100%; margin-bottom: 1rem;">Consulta Afiliado</button>
+        </div>
+        <!-- Botón discreto pingüino -->
+        <button class="penguin-btn" onclick="toggleLoginModal(true)">🐧</button>
+    </div>
+
+    <!-- NAVEGACION -->
+    <nav id="main-nav" style="display: none;">
+        <div style="font-weight: 900; color: var(--accent); font-size: 1.1rem; cursor: pointer;" onclick="goHome()">SINDICATO</div>
+        <div class="nav-links" id="admin-links" style="display: none;">
+            <button onclick="openTab('tab-pagos')">Cobros</button>
+            <button onclick="openTab('tab-asistencia')">Reuniones</button>
+            <button onclick="openTab('tab-reportes')">Reportes</button>
+            <button onclick="openTab('tab-avisos')">Avisos</button>
+            <button onclick="openTab('tab-config')">Gestión</button>
+            <button onclick="goHome()" class="btn-ghost" style="color:var(--accent)">Volver</button>
+        </div>
+        <div class="nav-links" id="user-links" style="display: none;">
+            <button onclick="openTab('user-perfil')">Mi Estado</button>
+            <button onclick="openTab('user-avisos')">Comunicados</button>
+            <button onclick="goHome()" class="btn-ghost" style="color:var(--accent)">Volver</button>
+        </div>
+    </nav>
+
+    <!-- ADMINISTRACIÓN -->
+    <div class="container" id="admin-panel">
+        
+        <div id="tab-pagos" class="tab-content">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                <div class="card">
+                    <h2>Registrar Cobro</h2>
+                    <div class="search-box">
+                        <input type="text" id="pay-name" class="nav-input" placeholder="Buscar socio..." onkeyup="handleSearch(this, 'pay-drop')">
+                        <div id="pay-drop" class="drop-list"></div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="pay-year" class="nav-input" onchange="loadDossierAdmin()"></select>
+                        <select id="pay-month-start" class="nav-input">
+                            <option value="1">Enero</option><option value="2">Febrero</option>
+                            <option value="3">Marzo</option><option value="4">Abril</option>
+                            <option value="5">Mayo</option><option value="6">Junio</option>
+                            <option value="7">Julio</option><option value="8">Agosto</option>
+                            <option value="9">Septiembre</option><option value="10">Octubre</option>
+                            <option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                    <input type="number" id="pay-qty" placeholder="Meses" value="1" onchange="updatePayDisplay()" class="nav-input">
+                    <input type="number" id="pay-amount" placeholder="Monto Bs." value="10" disabled>
+                    <button onclick="submitPayment()" class="btn-red" style="width: 100%;">Confirmar Pago</button>
+                </div>
+                <!-- Vista previa historial mejorada -->
+                <div class="card">
+                    <h2>Historial de Pagos</h2>
+                    <div id="admin-dossier-view">
+                        <p style="color:#666; font-size:0.9rem; text-align:center; padding:20px;">Seleccione un socio para ver su historial.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-reportes" class="tab-content" style="display:none">
+            <div class="no-print">
+                <div class="tabs-selector">
+                    <button class="tab-btn active" id="btn-rep-ind" onclick="switchReportSubTab('individual')">Individual (Kardex)</button>
+                    <button class="tab-btn" id="btn-rep-gen" onclick="switchReportSubTab('general')">General (Planilla)</button>
+                </div>
+
+                <div id="sub-tab-individual" class="card no-hover">
+                    <h2>Kardex de Afiliado</h2>
+                    <div class="search-box">
+                        <input type="text" id="rep-socio-name" class="nav-input" placeholder="Buscar afiliado..." onkeyup="handleSearch(this, 'rep-drop')">
+                        <div id="rep-drop" class="drop-list"></div>
+                    </div>
+                    <div style="margin-top:15px; display:flex; gap:10px;">
+                        <button onclick="generateIndReport()" class="btn-red">Generar Todo</button>
+                        <button onclick="printReport()" class="btn-green">Imprimir</button>
+                    </div>
+                </div>
+
+                <div id="sub-tab-general" class="card no-hover" style="display: none;">
+                    <h2>Reporte General</h2>
+                    <select id="rep-gen-year" class="nav-input"></select>
+                    <button onclick="generateGenReport()" class="btn-red">Generar Planilla</button>
+                    <button onclick="printReport()" class="btn-green">Imprimir</button>
+                </div>
+            </div>
+
+            <div id="report-printable-area">
+                <div class="print-header">
+                    <h1 id="print-main-title">Kardex de Control Sindical</h1>
+                    <p id="print-subtitle" style="font-weight: bold; font-size: 14pt; margin-top: 5px;"></p>
+                </div>
+                <div id="rep-visual-content"></div>
+                <div class="print-footer">
+                    <div class="signature">Firma Interesado</div>
+                    <div class="signature">Sello y Firma Directiva</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-asistencia" class="tab-content" style="display:none">
+            <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 1.5rem;">
+                <div class="card">
+                    <h2>Crear Reunión</h2>
+                    <input type="text" id="act-name" placeholder="Nombre Reunión" class="nav-input">
+                    <input type="date" id="act-date" class="nav-input">
+                    <input type="number" id="act-fine" value="20" placeholder="Multa Bs." class="nav-input">
+                    <button onclick="createActivity()" class="btn-red" style="width: 100%;">Crear</button>
+                    <div id="act-list" style="margin-top: 20px;"></div>
+                </div>
+                <div class="card" id="assist-card" style="display:none">
+                    <h2 id="assist-title">Control Asistencia</h2>
+                    <div id="assist-table"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-avisos" class="tab-content" style="display:none">
+            <div class="card">
+                <h2>Publicar Aviso</h2>
+                <input type="text" id="notice-title-input" placeholder="Título" class="nav-input">
+                <textarea id="notice-body-input" placeholder="Mensaje..." class="nav-input"></textarea>
+                <button onclick="publishNotice()" class="btn-red" style="width: 100%;">Publicar</button>
+            </div>
+            <div id="admin-notices-list"></div>
+        </div>
+
+        <div id="tab-config" class="tab-content" style="display:none">
+            <div class="card">
+                <h2>Socios</h2>
+                <input type="text" id="cfg-socio-name" placeholder="Nombre Completo" class="nav-input">
+                <button onclick="addSocio()" class="btn-red">Añadir</button>
+                <div id="cfg-socios-list" style="margin-top:20px;"></div>
+            </div>
+            <div class="card">
+                <h2>Años / Gestiones</h2>
+                <input type="number" id="cfg-new-year" placeholder="Año" class="nav-input">
+                <button onclick="addYear()" class="btn-red">Añadir</button>
+                <div id="cfg-years-list" style="margin-top:10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- USUARIO -->
+    <div class="container" id="user-panel">
+        <div id="user-perfil" class="tab-content">
+            <div class="card">
+                <h2>Mi Estado</h2>
+                <div class="search-box">
+                    <input type="text" id="user-search-input" class="nav-input" placeholder="Escriba su nombre..." onkeyup="handleSearch(this, 'user-drop')">
+                    <div id="user-drop" class="drop-list"></div>
+                </div>
+                <button onclick="loadUserDashboard()" class="btn-red" style="width: 100%; margin-top:10px;">Consultar</button>
+            </div>
+            <div id="user-dashboard-view"></div>
+        </div>
+        <div id="user-avisos" class="tab-content" style="display:none">
+            <div id="user-notices-list"></div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        // Firebase Setup
+        const firebaseConfig = {
+            apiKey: "AIzaSyCF4UkeKdrkwFIF8GXph3aUmUBa-0-I0Ko",
+            authDomain: "sindicato-pagos.firebaseapp.com",
+            projectId: "sindicato-pagos",
+            storageBucket: "sindicato-pagos.firebasestorage.app",
+            messagingSenderId: "312221388190",
+            appId: "1:312221388190:web:b72becdd106713095d9a8f"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const appId = 'sindicato-pagos-v1';
+        
+        const getPublicRef = (coll) => db.collection('artifacts').doc(appId).collection('public').doc('data').collection(coll);
+
+        let socios = [], gestiones = [], activities = [];
+        let currentEditingSocioId = null; 
+        const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+        async function init() {
+            showLoading(true);
+            try { 
+                // Inicialización anónima solo para cargar datos públicos, el login administrativo es separado
+                if(!auth.currentUser) await auth.signInAnonymously(); 
+                setupListeners(); 
+                setupKeyboardNav();
+            } catch (e) { console.error(e); }
+            showLoading(false);
+        }
+
+        function setupListeners() {
+            getPublicRef('socios').orderBy('nombre').onSnapshot(snap => { socios = snap.docs.map(d => ({id: d.id, ...d.data()})); renderSocios(); });
+            getPublicRef('gestiones').orderBy('val', 'desc').onSnapshot(snap => { gestiones = snap.docs.map(d => ({id: d.id, ...d.data()})); renderGestiones(); });
+            getPublicRef('actividades').orderBy('timestamp', 'desc').onSnapshot(snap => { activities = snap.docs.map(d => ({id: d.id, ...d.data()})); renderActivities(); });
+            getPublicRef('avisos').orderBy('timestamp', 'desc').onSnapshot(snap => { renderNotices(snap.docs.map(d => ({ id: d.id, ...d.data() }))); });
+        }
+
+        function setupKeyboardNav() {
+            document.querySelectorAll('.nav-input').forEach(input => {
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        const all = [...document.querySelectorAll('.nav-input, button')];
+                        const idx = all.indexOf(e.target);
+                        if(idx < all.length - 1) all[idx+1].focus();
+                    }
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        const all = [...document.querySelectorAll('.nav-input, button')];
+                        const idx = all.indexOf(e.target);
+                        if(idx > 0) all[idx-1].focus();
+                    }
+                });
+            });
+
+            // Enter listeners específicos
+            document.getElementById('login-pass').addEventListener('keyup', e => { if(e.key === 'Enter') performLogin(); });
+            document.getElementById('pay-name').addEventListener('keyup', e => { if(e.key === 'Enter' && socios.length > 0) handleSearch(e.target, 'pay-drop'); });
+            document.getElementById('user-search-input').addEventListener('keyup', e => { if(e.key === 'Enter') loadUserDashboard(); });
+        }
+
+        function goHome() {
+            document.querySelectorAll('.container').forEach(c => c.style.display = 'none');
+            document.querySelectorAll('.nav-links').forEach(n => n.style.display = 'none');
+            document.getElementById('main-nav').style.display = 'none';
+            document.getElementById('splash').style.display = 'flex';
+        }
+
+        function toggleLoginModal(show) {
+            document.getElementById('login-modal').style.display = show ? 'flex' : 'none';
+            if(show) document.getElementById('login-email').focus();
+        }
+
+        async function performLogin() {
+            const e = document.getElementById('login-email').value;
+            const p = document.getElementById('login-pass').value;
+            if(!e || !p) return showToast("Complete credenciales");
+            showLoading(true);
+            try {
+                await auth.signInWithEmailAndPassword(e, p);
+                toggleLoginModal(false);
+                enterAs('admin');
+            } catch(err) {
+                showToast("Error de acceso: " + err.message);
+            }
+            showLoading(false);
+        }
+
+        function enterAs(r) {
+            if(r === 'admin') {
+                document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('admin-links').style.display = 'flex';
+                openTab('tab-pagos');
+            } else {
+                document.getElementById('user-panel').style.display = 'block';
+                document.getElementById('user-links').style.display = 'flex';
+                openTab('user-perfil');
+            }
+            document.getElementById('splash').style.display = 'none';
+            document.getElementById('main-nav').style.display = 'flex';
+        }
+
+        function openTab(id) {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+        }
+
+        function handleSearch(el, dId) {
+            const v = el.value.toUpperCase();
+            const d = document.getElementById(dId);
+            if(!v) { d.style.display='none'; return; }
+            const matches = socios.filter(s => s.nombre.includes(v)).slice(0, 5);
+            d.innerHTML = matches.map(s => `<div class="drop-item" onclick="selectDrop('${el.id}','${dId}','${s.nombre}')">${s.nombre}</div>`).join("");
+            d.style.display = matches.length ? 'block' : 'none';
+        }
+
+        function selectDrop(iId, dId, n) {
+            document.getElementById(iId).value = n;
+            document.getElementById(dId).style.display = 'none';
+            if(iId === 'pay-name') loadDossierAdmin();
+            if(iId === 'user-search-input') loadUserDashboard();
+        }
+
+        // --- FUNCION NUEVA: VISTA PREVIA MULTI AÑO ---
+        async function loadDossierAdmin() {
+            const name = document.getElementById('pay-name').value;
+            const socio = socios.find(s => s.nombre === name);
+            if(!socio) return;
+
+            // Mostrar esqueleto o loading local
+            document.getElementById('admin-dossier-view').innerHTML = '<div style="color:#666; text-align:center;">Cargando historial...</div>';
+
+            const snapP = await getPublicRef('pagos').where('socioId', '==', socio.id).get();
+            const pagos = snapP.docs.map(d => d.data());
+            
+            // Obtener últimos 5 años basados en gestiones o fecha actual
+            const currentYear = new Date().getFullYear();
+            const yearsToShow = Array.from({length: 5}, (_, i) => currentYear - i); // [2024, 2023...]
+
+            let html = `<div style="padding: 10px;">`;
+            
+            yearsToShow.forEach(y => {
+                html += `
+                <div class="hist-year-row">
+                    <div class="hist-label">${y}</div>
+                    <div class="hist-grid">`;
+                for(let m=1; m<=12; m++) {
+                    const isPaid = pagos.some(p => p.year === y && p.month === m);
+                    html += `<div class="hist-cell ${isPaid ? 'paid' : ''}">${isPaid ? '✓' : m}</div>`;
+                }
+                html += `</div></div>`;
+            });
+            html += `</div>`;
+            document.getElementById('admin-dossier-view').innerHTML = html;
+        }
+
+        // --- REPORTES AMPLIADOS ---
+        async function generateIndReport() {
+            const name = document.getElementById('rep-socio-name').value;
+            const socio = socios.find(s => s.nombre === name);
+            if(!socio) return showToast("Seleccione un afiliado");
+            
+            showLoading(true);
+            const snapP = await getPublicRef('pagos').where('socioId', '==', socio.id).get();
+            const pagos = snapP.docs.map(d => d.data());
+            
+            const snapA = await getPublicRef('asistencias').where('socioId', '==', socio.id).get();
+            const asistencias = snapA.docs.map(d => d.data());
+
+            document.getElementById('print-subtitle').innerText = socio.nombre;
+            
+            let html = `<div class="report-section-title">Historial de Pagos Mensuales</div>`;
+            
+            // Tabla por cada año
+            gestiones.forEach(g => {
+                html += `<p style="margin-top:10px; font-weight:bold;">Gestión ${g.val}</p>
+                <table class="rep-table"><thead><tr>`;
+                MESES.forEach(m => html += `<th>${m.substring(0,3)}</th>`);
+                html += `</tr></thead><tbody><tr>`;
+                for(let m=1; m<=12; m++) {
+                    const p = pagos.find(x => x.year === g.val && x.month === m);
+                    html += `<td>${p ? 'Bs.'+p.amount : '-'}</td>`;
+                }
+                html += `</tr></tbody></table>`;
+            });
+
+            // Tabla de Asistencias y Multas
+            html += `<div class="report-section-title">Control de Asistencias y Multas</div>
+            <table class="rep-table">
+                <thead><tr><th>Reunión / Actividad</th><th>Fecha</th><th>Estado</th><th>Multa</th></tr></thead>
+                <tbody>`;
+            
+            activities.forEach(act => {
+                const asis = asistencias.find(a => a.actId === act.id);
+                const pagada = asis?.finePaid === true;
+                html += `
+                    <tr>
+                        <td style="text-align:left">${act.name}</td>
+                        <td>${act.date}</td>
+                        <td>${asis ? 'Presente' : 'Falta'}</td>
+                        <td>${asis ? '-' : (pagada ? 'PAGADA (Bs.'+act.fine+')' : 'DEUDA (Bs.'+act.fine+')')}</td>
+                    </tr>`;
+            });
+            html += `</tbody></table>`;
+            
+            document.getElementById('rep-visual-content').innerHTML = html;
+            showLoading(false);
+            showToast("Kardex generado");
+        }
+
+        async function generateGenReport() {
+            const year = parseInt(document.getElementById('rep-gen-year').value);
+            showLoading(true);
+            const snap = await getPublicRef('pagos').where('year', '==', year).get();
+            const allPagos = snap.docs.map(d => d.data());
+            document.getElementById('print-subtitle').innerText = "Planilla General " + year;
+            let html = `<table class="rep-table"><thead><tr><th>Afiliado</th>`;
+            for(let m=1; m<=12; m++) html += `<th>${m}</th>`;
+            html += `</tr></thead><tbody>`;
+            socios.forEach(s => {
+                html += `<tr><td style="text-align:left;">${s.nombre}</td>`;
+                for(let m=1; m<=12; m++) {
+                    const p = allPagos.find(x => x.socioId === s.id && x.month === m);
+                    // MODIFICADO: Mostrar monto en lugar de X
+                    html += `<td>${p ? p.amount : ''}</td>`;
+                }
+                html += `</tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('rep-visual-content').innerHTML = html;
+            showLoading(false);
+        }
+
+        // --- DASHBOARD USUARIO ---
+        async function loadUserDashboard() {
+            const name = document.getElementById('user-search-input').value;
+            const socio = socios.find(s => s.nombre === name);
+            if(!socio) return showToast("Nombre no válido");
+            
+            showLoading(true);
+            const snapP = await getPublicRef('pagos').where('socioId', '==', socio.id).get();
+            const pagos = snapP.docs.map(d => d.data());
+            const snapA = await getPublicRef('asistencias').where('socioId', '==', socio.id).get();
+            const asistencias = snapA.docs.map(d => d.data());
+
+            let totalPagados = pagos.length;
+            let totalRestantes = (gestiones.length * 12) - totalPagados;
+
+            let html = `
+                <div class="stat-grid">
+                    <div class="stat-card"><div>Pagados</div><div class="stat-val" style="color:var(--success)">${totalPagados}</div></div>
+                    <div class="stat-card"><div>Restantes</div><div class="stat-val" style="color:var(--accent)">${totalRestantes}</div></div>
+                </div>`;
+
+            gestiones.forEach(g => {
+                html += `<div class="card no-hover"><h3>Gestión ${g.val}</h3><div class="months-grid">`;
+                for(let m=1; m<=12; m++) {
+                    const pag = pagos.some(p => p.year === g.val && p.month === m);
+                    html += `<div class="month-box ${pag ? 'paid' : 'pending'}">${MESES[m-1].substring(0,3)}</div>`;
+                }
+                html += `</div></div>`;
+            });
+
+            html += `<div class="card no-hover"><h3>Multas y Reuniones</h3>`;
+            activities.forEach(act => {
+                const asis = asistencias.find(a => a.actId === act.id);
+                const pagada = asis?.finePaid === true;
+                html += `
+                    <div class="item-row">
+                        <span>${act.name} (${act.date})</span>
+                        <span>${asis ? '<span class="badge badge-paid">PRESENTE</span>' : (pagada ? '<span class="badge badge-paid">M. PAGADA</span>' : '<span class="badge badge-debt">M. PENDIENTE</span>')}</span>
+                    </div>`;
+            });
+            html += `</div>`;
+            document.getElementById('user-dashboard-view').innerHTML = html;
+            showLoading(false);
+        }
+
+        // --- GESTIÓN REUNIONES ---
+        async function loadAssist(aId, name) {
+            document.getElementById('assist-card').style.display = 'block';
+            document.getElementById('assist-title').innerText = name;
+            const snap = await getPublicRef('asistencias').where('actId', '==', aId).get();
+            const asisDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            document.getElementById('assist-table').innerHTML = `
+                <table class="rep-table">
+                    <thead><tr><th>Socio</th><th>Estado</th><th>Multa</th></tr></thead>
+                    <tbody>
+                    ${socios.map(s => {
+                        const asis = asisDocs.find(a => a.socioId === s.id);
+                        const isPresent = !!asis;
+                        const isFinePaid = asis?.finePaid === true;
+                        return `
+                            <tr>
+                                <td style="text-align:left">${s.nombre}</td>
+                                <td><button onclick="toggleAsis('${aId}','${s.id}','${name}')" class="${isPresent?'btn-red':'btn-ghost'}">${isPresent?'P':'F'}</button></td>
+                                <td>${!isPresent ? `<button onclick="toggleFinePaid('${aId}','${s.id}','${name}')" class="${isFinePaid?'btn-green':'btn-ghost'}">${isFinePaid?'PAGADA':'COBRAR'}</button>` : '-'}</td>
+                            </tr>`;
+                    }).join("")}
+                    </tbody>
+                </table>`;
+        }
+
+        async function toggleAsis(aId, sId, name) {
+            const snap = await getPublicRef('asistencias').where('actId', '==', aId).where('socioId', '==', sId).get();
+            if(snap.empty) await getPublicRef('asistencias').add({ actId: aId, socioId: sId, finePaid: false });
+            else await snap.docs[0].ref.delete();
+            loadAssist(aId, name);
+        }
+
+        async function toggleFinePaid(aId, sId, name) {
+            const snap = await getPublicRef('asistencias').where('actId', '==', aId).where('socioId', '==', sId).get();
+            if(snap.empty) await getPublicRef('asistencias').add({ actId: aId, socioId: sId, finePaid: true });
+            else await snap.docs[0].ref.update({ finePaid: !snap.docs[0].data().finePaid });
+            loadAssist(aId, name);
+        }
+
+        // --- FUNCIONES COMUNES ---
+        function renderSocios() {
+            const list = document.getElementById('cfg-socios-list');
+            if(list) list.innerHTML = socios.map(s => `
+                <div class="item-row">
+                    <span>${s.nombre}</span>
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="openEditModal('${s.id}','${s.nombre}')" class="btn-ghost">✏️</button>
+                        <button onclick="deleteDoc('socios','${s.id}')" class="btn-ghost">🗑️</button>
+                    </div>
+                </div>`).join("");
+        }
+        function renderGestiones() {
+            const opts = gestiones.map(g => `<option value="${g.val}">${g.val}</option>`).join("");
+            ['pay-year','rep-gen-year'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerHTML = opts; });
+        }
+        function renderActivities() {
+            const list = document.getElementById('act-list');
+            if(list) list.innerHTML = activities.map(a => `
+                <div class="item-row">
+                    <span onclick="loadAssist('${a.id}','${a.name}')" style="cursor:pointer">${a.name}</span>
+                    <button onclick="deleteDoc('actividades','${a.id}')" class="btn-ghost">🗑️</button>
+                </div>`).join("");
+        }
+        function renderNotices(avisos) {
+            const html = a => `<div class="notice-card">${auth.currentUser && document.getElementById('admin-panel').style.display==='block' ? `<button class="delete-notice-btn" onclick="deleteDoc('avisos','${a.id}')">🗑️</button>` : ''}<div class="notice-header"><div class="notice-title">📢 ${a.title}</div><small>${a.date}</small></div><div class="notice-body">${a.body}</div></div>`;
+            if(document.getElementById('admin-notices-list')) document.getElementById('admin-notices-list').innerHTML = avisos.map(html).join("");
+            if(document.getElementById('user-notices-list')) document.getElementById('user-notices-list').innerHTML = avisos.map(html).join("");
+        }
+
+        async function submitPayment() {
+            const socio = socios.find(s => s.nombre === document.getElementById('pay-name').value);
+            if(!socio) return showToast("Socio no encontrado");
+            const year = parseInt(document.getElementById('pay-year').value);
+            const month = parseInt(document.getElementById('pay-month-start').value);
+            const qty = parseInt(document.getElementById('pay-qty').value) || 1;
+            showLoading(true);
+            for(let i=0; i<qty; i++) {
+                let m = month + i, y = year;
+                while(m > 12) { m -= 12; y++; }
+                await getPublicRef('pagos').add({ socioId: socio.id, year: y, month: m, amount: 10, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+            showLoading(false); showToast("Cobro Exitoso"); loadDossierAdmin();
+        }
+
+        async function addSocio() { const n = document.getElementById('cfg-socio-name').value.trim().toUpperCase(); if(n) await getPublicRef('socios').add({ nombre: n }); document.getElementById('cfg-socio-name').value = ""; }
+        async function addYear() { const y = parseInt(document.getElementById('cfg-new-year').value); if(y) await getPublicRef('gestiones').add({ val: y }); document.getElementById('cfg-new-year').value = ""; }
+        async function publishNotice() { const t = document.getElementById('notice-title-input').value, b = document.getElementById('notice-body-input').value; if(t && b) await getPublicRef('avisos').add({ title: t, body: b, date: new Date().toLocaleDateString(), timestamp: firebase.firestore.FieldValue.serverTimestamp() }); document.getElementById('notice-title-input').value = ""; document.getElementById('notice-body-input').value = ""; }
+        async function createActivity() { const n = document.getElementById('act-name').value, d = document.getElementById('act-date').value, f = document.getElementById('act-fine').value; if(n && d) await getPublicRef('actividades').add({ name: n, date: d, fine: parseFloat(f), timestamp: firebase.firestore.FieldValue.serverTimestamp() }); showToast("Reunión creada"); }
+        
+        async function deleteDoc(c, id) { openConfirm("¿Eliminar registro?", async () => { showLoading(true); await getPublicRef(c).doc(id).delete(); showLoading(false); }); }
+        function openConfirm(m, cb) { document.getElementById('confirm-message').innerText = m; document.getElementById('confirm-overlay').style.display = 'flex'; document.getElementById('confirm-btn-yes').onclick = async () => { await cb(); closeConfirm(); }; }
+        function closeConfirm() { document.getElementById('confirm-overlay').style.display = 'none'; }
+        function openEditModal(id, n) { currentEditingSocioId = id; document.getElementById('modal-edit-input').value = n; document.getElementById('modal-overlay').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+        async function saveEditSocio() { const n = document.getElementById('modal-edit-input').value.trim().toUpperCase(); if(n) await getPublicRef('socios').doc(currentEditingSocioId).update({ nombre: n }); closeModal(); }
+        function showToast(m) { const c = document.getElementById('toast-container'), t = document.createElement('div'); t.className='toast'; t.innerText=m; c.appendChild(t); setTimeout(() => t.remove(), 3000); }
+        function showLoading(s) { document.getElementById('loading').style.display = s ? 'flex' : 'none'; }
+        function printReport() { window.print(); }
+        function switchReportSubTab(t) { document.getElementById('sub-tab-individual').style.display = t==='individual'?'block':'none'; document.getElementById('sub-tab-general').style.display = t==='general'?'block':'none'; document.getElementById('btn-rep-ind').className = `tab-btn ${t==='individual'?'active':''}`; document.getElementById('btn-rep-gen').className = `tab-btn ${t==='general'?'active':''}`; }
+        function updatePayDisplay() { document.getElementById('pay-amount').value = (parseInt(document.getElementById('pay-qty').value) || 1) * 10; }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
