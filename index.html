@@ -21,6 +21,7 @@
             --radius: 12px;
             --success: #1b5e20;
             --warning: #fbc02d;
+            --info: #0288d1;
         }
 
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; outline: none; }
@@ -30,7 +31,11 @@
         @media print {
             @page { size: legal; margin: 1cm; }
             body { background: white; color: black; }
-            nav, .nav-links, button, .search-box, .stat-grid, #splash, .no-print, #loading, .tabs-selector, .year-chips, #modal-overlay, #confirm-overlay, .penguin-btn, #login-modal, #toast-container { display: none !important; }
+            nav, .nav-links, button, .search-box, .stat-grid, #splash, .no-print, #loading, .tabs-selector, .year-chips, #modal-overlay, #confirm-overlay, .penguin-btn, #login-modal, #toast-container, .external-portal-btn { display: none !important; }
+            /* Ocultar todo excepto el área imprimible activa */
+            body > * { display: none; }
+            .print-visible { display: block !important; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+            
             .container { display: block !important; width: 100%; max-width: none; padding: 0; margin: 0; }
             .card { border: none !important; box-shadow: none !important; background: white !important; color: black !important; padding: 0 !important; }
             
@@ -45,6 +50,11 @@
             
             .print-footer { display: block !important; margin-top: 50px; display: flex; justify-content: space-around; }
             .signature { border-top: 1px solid black; width: 220px; text-align: center; font-size: 9pt; margin-top: 40px; }
+
+            /* Estilos específicos para Recibo Impreso */
+            #receipt-content { border: 2px solid black; padding: 20px; color: black; background: white; }
+            .receipt-header { border-bottom: 1px solid black; margin-bottom: 10px; }
+            .receipt-total { border-top: 1px solid black; font-weight: bold; font-size: 1.2rem; margin-top: 10px; text-align: right; }
         }
 
         .print-header, .print-footer { display: none; }
@@ -70,9 +80,10 @@
         .btn-red { background: var(--accent); border: none; }
         .btn-ghost { background: transparent; border: 1px solid var(--border); }
         .btn-green { background: var(--success); border: none; }
+        .btn-blue { background: var(--info); border: none; }
 
-        #modal-overlay, #confirm-overlay, #login-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9000; display: none; justify-content: center; align-items: center; }
-        .modal-card { background: var(--card); border: 1px solid var(--accent); border-radius: var(--radius); width: 90%; max-width: 450px; padding: 2rem; box-shadow: 0 0 30px var(--glow); }
+        #modal-overlay, #confirm-overlay, #login-modal, #receipt-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9000; display: none; justify-content: center; align-items: center; }
+        .modal-card { background: var(--card); border: 1px solid var(--accent); border-radius: var(--radius); width: 90%; max-width: 450px; padding: 2rem; box-shadow: 0 0 30px var(--glow); max-height: 90vh; overflow-y: auto; }
 
         .tabs-selector { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         .tab-btn { border: none; background: transparent; color: #555; padding: 8px 15px; font-size: 0.8rem; cursor: pointer; }
@@ -97,9 +108,10 @@
         .notice-body { color: #ccc; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; }
         .delete-notice-btn { position: absolute; top: 10px; right: 10px; background: transparent; border: none; color: #444; font-size: 0.9rem; cursor: pointer; }
 
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
         .stat-card { background: #111; padding: 1.5rem; border-radius: 10px; border-left: 4px solid var(--accent); text-align: center; }
         .stat-val { font-size: 1.8rem; font-weight: 800; color: #fff; margin-top: 5px; }
+        .stat-label { font-size: 0.8rem; color: #777; text-transform: uppercase; letter-spacing: 1px; }
 
         .months-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 10px; }
         .month-box { padding: 10px; text-align: center; border-radius: 8px; background: #151515; border: 1px solid var(--border); font-size: 0.7rem; font-weight: 500; text-transform: uppercase; }
@@ -130,11 +142,28 @@
         .hist-grid { display: flex; gap: 2px; flex: 1; }
         .hist-cell { flex: 1; height: 20px; background: #222; border-radius: 2px; display: flex; justify-content: center; align-items: center; font-size: 10px; color: #555; }
         .hist-cell.paid { background: var(--success); color: #fff; }
+
+        /* Receipt Modal Styles */
+        .receipt-container { background: white; color: black; padding: 20px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; position: relative; }
+        .receipt-container h3 { text-align: center; color: black; border-bottom: 2px dashed black; padding-bottom: 10px; margin-bottom: 15px; font-weight: bold; }
+        .receipt-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
+        .receipt-total-line { border-top: 2px dashed black; margin-top: 10px; padding-top: 10px; font-weight: bold; font-size: 1.2rem; text-align: right; }
+        .receipt-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: #555; }
+        .external-portal-btn { position: fixed; bottom: 20px; left: 20px; z-index: 6000; font-size: 0.8rem; padding: 8px 15px; background: var(--card); border: 1px solid var(--border); color: #777; border-radius: 20px; text-decoration: none; transition: 0.3s; }
+        .external-portal-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+        /* Chat Styles */
+        .chat-box { height: 300px; overflow-y: auto; background: #080808; border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .chat-msg { max-width: 80%; padding: 8px 12px; border-radius: 10px; font-size: 0.9rem; line-height: 1.4; }
+        .msg-user { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 0; }
+        .msg-admin { align-self: flex-start; background: #222; color: #ddd; border-bottom-left-radius: 0; }
+        .msg-meta { font-size: 0.7rem; opacity: 0.7; margin-top: 4px; display: block; text-align: right; }
     </style>
 </head>
 <body>
 
     <div id="loading" class="loading-overlay">Cargando Sistema...</div>
+    <a href="https://example.com" target="_blank" class="external-portal-btn">🌐 Portal Externo</a>
 
     <!-- MODALES -->
     <div id="confirm-overlay">
@@ -144,6 +173,32 @@
             <div style="display: flex; gap: 10px;">
                 <button id="confirm-btn-yes" class="btn-red" style="flex: 1;">Aceptar</button>
                 <button onclick="closeConfirm()" class="btn-ghost" style="flex: 1;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Recibo Digital -->
+    <div id="receipt-modal">
+        <div class="modal-card">
+            <h2 style="border:none; text-align:center; margin-bottom:10px;">Comprobante Generado</h2>
+            <div id="receipt-printable-area">
+                <div class="receipt-container" id="receipt-content">
+                    <h3>RECIBO OFICIAL</h3>
+                    <div class="receipt-row"><span>Folio:</span><span id="rec-folio">...</span></div>
+                    <div class="receipt-row"><span>Fecha:</span><span id="rec-date">...</span></div>
+                    <div class="receipt-row"><span>Afiliado:</span><span id="rec-socio">...</span></div>
+                    <div style="margin: 15px 0; border-top: 1px dotted #ccc; border-bottom: 1px dotted #ccc; padding: 10px 0;">
+                        <div style="font-weight:bold; margin-bottom:5px;">Detalle:</div>
+                        <div id="rec-items"></div>
+                    </div>
+                    <div class="receipt-total-line">Total: Bs. <span id="rec-total">0</span></div>
+                    <div class="receipt-footer">SINDICATO - COPIA DIGITAL<br>Generado por Sistema Seguro</div>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+                <button onclick="printReceipt()" class="btn-green">🖨️ Imprimir / Guardar PDF</button>
+                <button onclick="shareWhatsApp()" class="btn-blue">📱 Enviar a WhatsApp</button>
+                <button onclick="closeReceiptModal()" class="btn-ghost">Cerrar</button>
             </div>
         </div>
     </div>
@@ -189,6 +244,7 @@
             <button onclick="openTab('tab-asistencia')">Reuniones</button>
             <button onclick="openTab('tab-reportes')">Reportes</button>
             <button onclick="openTab('tab-avisos')">Avisos</button>
+            <button onclick="openTab('tab-mensajes')">Mensajes</button>
             <button onclick="openTab('tab-config')">Gestión</button>
             <button onclick="goHome()" class="btn-ghost" style="color:var(--accent)">Volver</button>
         </div>
@@ -203,9 +259,25 @@
     <div class="container" id="admin-panel">
         
         <div id="tab-pagos" class="tab-content">
+            <!-- Stats Dashboard Inyectado -->
+            <div id="admin-stats-container" class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Recaudado Este Mes</div>
+                    <div class="stat-val" style="color: var(--success);" id="stat-month">Bs. 0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Recaudado Anual</div>
+                    <div class="stat-val" style="color: var(--warning);" id="stat-year">Bs. 0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Socios Activos</div>
+                    <div class="stat-val" style="color: var(--info);" id="stat-socios">0</div>
+                </div>
+            </div>
+
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
                 <div class="card">
-                    <h2>Registrar Cobro</h2>
+                    <h2>Registrar Cobro & Facturación</h2>
                     <div class="search-box">
                         <input type="text" id="pay-name" class="nav-input" placeholder="Buscar socio..." onkeyup="handleSearch(this, 'pay-drop')">
                         <div id="pay-drop" class="drop-list"></div>
@@ -221,11 +293,17 @@
                             <option value="11">Noviembre</option><option value="12">Diciembre</option>
                         </select>
                     </div>
-                    <input type="number" id="pay-qty" placeholder="Meses" value="1" onchange="updatePayDisplay()" class="nav-input">
-                    <input type="number" id="pay-amount" placeholder="Monto Bs." value="10" disabled>
-                    <button onclick="submitPayment()" class="btn-red" style="width: 100%;">Confirmar Pago</button>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="pay-qty" placeholder="Meses" value="1" onchange="updatePayDisplay()" class="nav-input">
+                        <select id="pay-method" class="nav-input">
+                            <option value="EFECTIVO">Efectivo</option>
+                            <option value="QR">Transferencia QR</option>
+                        </select>
+                    </div>
+                    <input type="number" id="pay-amount" placeholder="Monto Total Bs." value="10" disabled>
+                    <button onclick="submitPayment()" class="btn-red" style="width: 100%;">Confirmar y Generar Recibo</button>
                 </div>
-                <!-- Vista previa historial mejorada -->
+                
                 <div class="card">
                     <h2>Historial de Pagos</h2>
                     <div id="admin-dossier-view">
@@ -286,8 +364,11 @@
                     <div id="act-list" style="margin-top: 20px;"></div>
                 </div>
                 <div class="card" id="assist-card" style="display:none">
-                    <h2 id="assist-title">Control Asistencia</h2>
-                    <div id="assist-table"></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h2 id="assist-title" style="margin:0; border:none; padding:0;">Control</h2>
+                        <input type="text" id="assist-filter" placeholder="Buscar socio..." class="nav-input" style="width:150px; margin:0;" onkeyup="filterAssistTable()">
+                    </div>
+                    <div id="assist-table" style="margin-top:10px;"></div>
                 </div>
             </div>
         </div>
@@ -300,6 +381,25 @@
                 <button onclick="publishNotice()" class="btn-red" style="width: 100%;">Publicar</button>
             </div>
             <div id="admin-notices-list"></div>
+        </div>
+
+        <!-- Nueva Pestaña de Mensajes Admin -->
+        <div id="tab-mensajes" class="tab-content" style="display:none">
+            <div class="card">
+                <h2>Buzón de Consultas</h2>
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; height: 400px;">
+                    <div id="msg-threads-list" style="border-right: 1px solid var(--border); overflow-y: auto;">
+                        <p style="color:#666; padding:10px;">Seleccione una conversación.</p>
+                    </div>
+                    <div style="display:flex; flex-direction:column;">
+                        <div id="msg-admin-view" class="chat-box" style="flex:1;">Seleccione un socio para ver el chat.</div>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" id="msg-admin-reply" placeholder="Escribir respuesta..." class="nav-input" style="margin:0;">
+                            <button onclick="sendAdminReply()" class="btn-red" style="width:80px;">Enviar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="tab-config" class="tab-content" style="display:none">
@@ -330,6 +430,22 @@
                 <button onclick="loadUserDashboard()" class="btn-red" style="width: 100%; margin-top:10px;">Consultar</button>
             </div>
             <div id="user-dashboard-view"></div>
+            
+            <!-- Soporte Usuario -->
+             <div class="card" id="user-support-card" style="display:none; margin-top:15px;">
+                <h2>Soporte Directo</h2>
+                <div id="user-chat-box" class="chat-box"></div>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="user-msg-input" placeholder="Escriba su consulta a la directiva..." class="nav-input" style="margin:0;">
+                    <button onclick="sendUserMessage()" class="btn-red">Enviar</button>
+                </div>
+             </div>
+
+            <!-- Mis Recibos -->
+            <div class="card" id="user-receipts-card" style="display:none; margin-top:15px;">
+                <h2>Mis Recibos Digitales</h2>
+                <div id="user-receipts-list" style="max-height:200px; overflow-y:auto;"></div>
+            </div>
         </div>
         <div id="user-avisos" class="tab-content" style="display:none">
             <div id="user-notices-list"></div>
@@ -355,14 +471,17 @@
         
         const getPublicRef = (coll) => db.collection('artifacts').doc(appId).collection('public').doc('data').collection(coll);
 
-        let socios = [], gestiones = [], activities = [];
+        let socios = [], gestiones = [], activities = [], pagosCache = [], recibosCache = [], mensajesCache = [];
         let currentEditingSocioId = null; 
+        let currentReceiptData = null; // Para el modal
+        let selectedChatSocioId = null;
+        let currentUserSocioId = null; // Para el dashboard de usuario
+
         const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
         async function init() {
             showLoading(true);
             try { 
-                // Inicialización anónima solo para cargar datos públicos, el login administrativo es separado
                 if(!auth.currentUser) await auth.signInAnonymously(); 
                 setupListeners(); 
                 setupKeyboardNav();
@@ -375,27 +494,31 @@
             getPublicRef('gestiones').orderBy('val', 'desc').onSnapshot(snap => { gestiones = snap.docs.map(d => ({id: d.id, ...d.data()})); renderGestiones(); });
             getPublicRef('actividades').orderBy('timestamp', 'desc').onSnapshot(snap => { activities = snap.docs.map(d => ({id: d.id, ...d.data()})); renderActivities(); });
             getPublicRef('avisos').orderBy('timestamp', 'desc').onSnapshot(snap => { renderNotices(snap.docs.map(d => ({ id: d.id, ...d.data() }))); });
+            
+            // Listeners para nuevas funciones
+            getPublicRef('pagos').onSnapshot(snap => { 
+                pagosCache = snap.docs.map(d => ({id: d.id, ...d.data()})); 
+                updateAdminStats(); // Recalcular estadisticas
+            });
+            getPublicRef('recibos').orderBy('timestamp', 'desc').limit(50).onSnapshot(snap => {
+                recibosCache = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            });
+            getPublicRef('mensajes').orderBy('timestamp', 'asc').onSnapshot(snap => {
+                mensajesCache = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                if(document.getElementById('admin-panel').style.display === 'block') renderAdminChatThreads();
+                if(currentUserSocioId) renderUserChat(currentUserSocioId);
+            });
         }
 
         function setupKeyboardNav() {
             document.querySelectorAll('.nav-input').forEach(input => {
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-                        e.preventDefault();
-                        const all = [...document.querySelectorAll('.nav-input, button')];
-                        const idx = all.indexOf(e.target);
-                        if(idx < all.length - 1) all[idx+1].focus();
-                    }
-                    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-                        e.preventDefault();
-                        const all = [...document.querySelectorAll('.nav-input, button')];
-                        const idx = all.indexOf(e.target);
-                        if(idx > 0) all[idx-1].focus();
+                        // e.preventDefault(); // Permitir escritura normal
                     }
                 });
             });
 
-            // Enter listeners específicos
             document.getElementById('login-pass').addEventListener('keyup', e => { if(e.key === 'Enter') performLogin(); });
             document.getElementById('pay-name').addEventListener('keyup', e => { if(e.key === 'Enter' && socios.length > 0) handleSearch(e.target, 'pay-drop'); });
             document.getElementById('user-search-input').addEventListener('keyup', e => { if(e.key === 'Enter') loadUserDashboard(); });
@@ -406,6 +529,7 @@
             document.querySelectorAll('.nav-links').forEach(n => n.style.display = 'none');
             document.getElementById('main-nav').style.display = 'none';
             document.getElementById('splash').style.display = 'flex';
+            currentUserSocioId = null;
         }
 
         function toggleLoginModal(show) {
@@ -433,6 +557,7 @@
                 document.getElementById('admin-panel').style.display = 'block';
                 document.getElementById('admin-links').style.display = 'flex';
                 openTab('tab-pagos');
+                updateAdminStats();
             } else {
                 document.getElementById('user-panel').style.display = 'block';
                 document.getElementById('user-links').style.display = 'flex';
@@ -463,21 +588,50 @@
             if(iId === 'user-search-input') loadUserDashboard();
         }
 
-        // --- FUNCION NUEVA: VISTA PREVIA MULTI AÑO ---
+        // --- FUNCIONES DE ESTADÍSTICAS DASHBOARD ---
+        function updateAdminStats() {
+            if(!pagosCache.length) return;
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1; // 1-12
+
+            let totalMes = 0;
+            let totalAnio = 0;
+
+            // Filtrar pagos por fecha de registro (timestamp) para saber el flujo de caja real
+            // Sin embargo, como el modelo simple no tiene fecha de pago exacta en todos los casos antiguos,
+            // usaremos el campo 'year' del pago para la anual y un aproximado para el mes si existe timestamp.
+            
+            pagosCache.forEach(p => {
+                if(p.year === currentYear) totalAnio += parseFloat(p.amount || 0);
+                
+                // Para el mes, necesitamos mirar el timestamp de creación si existe
+                if(p.timestamp) {
+                    const d = p.timestamp.toDate();
+                    if(d.getFullYear() === currentYear && (d.getMonth() + 1) === currentMonth) {
+                        totalMes += parseFloat(p.amount || 0);
+                    }
+                }
+            });
+
+            document.getElementById('stat-month').innerText = `Bs. ${totalMes}`;
+            document.getElementById('stat-year').innerText = `Bs. ${totalAnio}`;
+            document.getElementById('stat-socios').innerText = socios.length;
+        }
+
+        // --- VISTA PREVIA MULTI AÑO ---
         async function loadDossierAdmin() {
             const name = document.getElementById('pay-name').value;
             const socio = socios.find(s => s.nombre === name);
             if(!socio) return;
 
-            // Mostrar esqueleto o loading local
             document.getElementById('admin-dossier-view').innerHTML = '<div style="color:#666; text-align:center;">Cargando historial...</div>';
-
-            const snapP = await getPublicRef('pagos').where('socioId', '==', socio.id).get();
-            const pagos = snapP.docs.map(d => d.data());
             
-            // Obtener últimos 5 años basados en gestiones o fecha actual
+            // Usar caché para velocidad
+            const pagosSocio = pagosCache.filter(p => p.socioId === socio.id);
+            
             const currentYear = new Date().getFullYear();
-            const yearsToShow = Array.from({length: 5}, (_, i) => currentYear - i); // [2024, 2023...]
+            const yearsToShow = Array.from({length: 5}, (_, i) => currentYear - i);
 
             let html = `<div style="padding: 10px;">`;
             
@@ -487,25 +641,156 @@
                     <div class="hist-label">${y}</div>
                     <div class="hist-grid">`;
                 for(let m=1; m<=12; m++) {
-                    const isPaid = pagos.some(p => p.year === y && p.month === m);
-                    html += `<div class="hist-cell ${isPaid ? 'paid' : ''}">${isPaid ? '✓' : m}</div>`;
+                    const pago = pagosSocio.find(p => p.year === y && p.month === m);
+                    if (pago) {
+                        // Edición rápida de monto con doble click (Feature nueva)
+                        html += `<div class="hist-cell paid" title="Monto: ${pago.amount}" ondblclick="editPaymentAmount('${pago.id}', ${pago.amount})">${MESES[m-1].substring(0,3)}</div>`;
+                    } else {
+                        html += `<div class="hist-cell">${m}</div>`;
+                    }
                 }
                 html += `</div></div>`;
             });
-            html += `</div>`;
+            html += `</div><div style="text-align:center; font-size:0.7rem; color:#666; margin-top:5px;">Doble click en mes pagado para corregir monto.</div>`;
             document.getElementById('admin-dossier-view').innerHTML = html;
         }
+        
+        // --- FUNCIÓN DE EDICIÓN DE PAGO (SEGURIDAD/CORRECCIÓN) ---
+        async function editPaymentAmount(pid, oldVal) {
+            const newVal = prompt("Corregir monto para este registro:", oldVal);
+            if(newVal !== null && !isNaN(newVal)) {
+                showLoading(true);
+                await getPublicRef('pagos').doc(pid).update({ amount: parseFloat(newVal) });
+                showToast("Monto corregido");
+                showLoading(false);
+                loadDossierAdmin();
+            }
+        }
 
-        // --- REPORTES AMPLIADOS ---
+        // --- SISTEMA DE FACTURACIÓN Y PAGOS (MODIFICADO) ---
+        async function submitPayment() {
+            const socio = socios.find(s => s.nombre === document.getElementById('pay-name').value);
+            if(!socio) return showToast("Socio no encontrado");
+            
+            const year = parseInt(document.getElementById('pay-year').value);
+            const startMonth = parseInt(document.getElementById('pay-month-start').value);
+            const qty = parseInt(document.getElementById('pay-qty').value) || 1;
+            const payMethod = document.getElementById('pay-method').value;
+            
+            // Validación de Duplicados
+            let duplicados = [];
+            for(let i=0; i<qty; i++) {
+                let m = startMonth + i, y = year;
+                while(m > 12) { m -= 12; y++; }
+                const exists = pagosCache.find(p => p.socioId === socio.id && p.year === y && p.month === m);
+                if(exists) duplicados.push(`${MESES[m-1]} ${y}`);
+            }
+
+            if(duplicados.length > 0) {
+                alert(`⚠️ ATENCIÓN: Ya existen pagos registrados para: ${duplicados.join(', ')}. Verifique antes de continuar.`);
+                return;
+            }
+
+            showLoading(true);
+            const folio = Date.now().toString(36).toUpperCase(); // Generar ID único corto
+            const itemsRecibo = [];
+            let totalRecibo = 0;
+            const batch = db.batch(); // Usar batch para atomicidad (todo o nada)
+
+            for(let i=0; i<qty; i++) {
+                let m = startMonth + i, y = year;
+                while(m > 12) { m -= 12; y++; }
+                
+                const amount = 10; // Monto base, podría ser dinámico
+                const docRef = getPublicRef('pagos').doc();
+                batch.set(docRef, { 
+                    socioId: socio.id, 
+                    year: y, 
+                    month: m, 
+                    amount: amount, 
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    receiptId: folio
+                });
+
+                itemsRecibo.push({ desc: `Cuota ${MESES[m-1]} ${y}`, amount: amount });
+                totalRecibo += amount;
+            }
+
+            // Crear documento de Recibo
+            const reciboRef = getPublicRef('recibos').doc(folio);
+            const reciboData = {
+                folio: folio,
+                socioId: socio.id,
+                socioName: socio.nombre,
+                date: new Date().toLocaleDateString(),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                items: itemsRecibo,
+                total: totalRecibo,
+                method: payMethod
+            };
+            batch.set(reciboRef, reciboData);
+
+            await batch.commit();
+            
+            showLoading(false); 
+            showToast("Pago registrado correctamente"); 
+            loadDossierAdmin();
+            openReceiptModal(reciboData);
+        }
+
+        // --- LÓGICA DE RECIBOS ---
+        function openReceiptModal(data) {
+            currentReceiptData = data;
+            document.getElementById('rec-folio').innerText = data.folio;
+            document.getElementById('rec-date').innerText = data.date;
+            document.getElementById('rec-socio').innerText = data.socioName;
+            document.getElementById('rec-total').innerText = data.total;
+            document.getElementById('rec-items').innerHTML = data.items.map(i => 
+                `<div style="display:flex; justify-content:space-between; font-size:0.9rem;"><span>${i.desc}</span><span>Bs. ${i.amount}</span></div>`
+            ).join("");
+            document.getElementById('receipt-modal').style.display = 'flex';
+        }
+
+        function closeReceiptModal() {
+            document.getElementById('receipt-modal').style.display = 'none';
+        }
+
+        function printReceipt() {
+            const printContent = document.getElementById('receipt-printable-area').innerHTML;
+            document.body.classList.add('printing-receipt'); // Helper class if needed
+            // Crear un iframe temporal para imprimir solo el recibo o usar window.print y CSS media
+            // Usaremos el enfoque de ocultar todo excepto el recibo via CSS media print
+            const overlay = document.getElementById('receipt-modal');
+            const originalDisplay = overlay.style.display;
+            
+            // Hack simple: Poner el contenido del recibo en el body, imprimir, y restaurar
+            // Nota: Para SPAs robustas esto es feo, pero funciona 100% en todos los navegadores sin librerías
+            const oldBody = document.body.innerHTML;
+            document.body.innerHTML = `<div class="print-visible" style="display:flex; justify-content:center; align-items:flex-start; padding-top:50px;">${printContent}</div>`;
+            window.print();
+            document.body.innerHTML = oldBody;
+            
+            // Re-bind events (porque reemplazamos el body) - En una app real usaríamos CSS @media print mejorado
+            // Recargamos la página para asegurar funcionalidad completa tras impresión destructiva
+            window.location.reload(); 
+        }
+
+        function shareWhatsApp() {
+            if(!currentReceiptData) return;
+            const text = `*RECIBO DE PAGO SINDICATO*\nFolio: ${currentReceiptData.folio}\nSocio: ${currentReceiptData.socioName}\nTotal: Bs.${currentReceiptData.total}\nFecha: ${currentReceiptData.date}\n\nGracias por su aporte.`;
+            const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        // --- REPORTES ---
         async function generateIndReport() {
             const name = document.getElementById('rep-socio-name').value;
             const socio = socios.find(s => s.nombre === name);
             if(!socio) return showToast("Seleccione un afiliado");
             
             showLoading(true);
-            const snapP = await getPublicRef('pagos').where('socioId', '==', socio.id).get();
-            const pagos = snapP.docs.map(d => d.data());
-            
+            // Usar cache para velocidad
+            const pagos = pagosCache.filter(p => p.socioId === socio.id);
             const snapA = await getPublicRef('asistencias').where('socioId', '==', socio.id).get();
             const asistencias = snapA.docs.map(d => d.data());
 
@@ -513,7 +798,6 @@
             
             let html = `<div class="report-section-title">Historial de Pagos Mensuales</div>`;
             
-            // Tabla por cada año
             gestiones.forEach(g => {
                 html += `<p style="margin-top:10px; font-weight:bold;">Gestión ${g.val}</p>
                 <table class="rep-table"><thead><tr>`;
@@ -526,7 +810,6 @@
                 html += `</tr></tbody></table>`;
             });
 
-            // Tabla de Asistencias y Multas
             html += `<div class="report-section-title">Control de Asistencias y Multas</div>
             <table class="rep-table">
                 <thead><tr><th>Reunión / Actividad</th><th>Fecha</th><th>Estado</th><th>Multa</th></tr></thead>
@@ -553,8 +836,8 @@
         async function generateGenReport() {
             const year = parseInt(document.getElementById('rep-gen-year').value);
             showLoading(true);
-            const snap = await getPublicRef('pagos').where('year', '==', year).get();
-            const allPagos = snap.docs.map(d => d.data());
+            // Usar cache filtrada
+            const allPagos = pagosCache.filter(p => p.year === year);
             document.getElementById('print-subtitle').innerText = "Planilla General " + year;
             let html = `<table class="rep-table"><thead><tr><th>Afiliado</th>`;
             for(let m=1; m<=12; m++) html += `<th>${m}</th>`;
@@ -563,7 +846,6 @@
                 html += `<tr><td style="text-align:left;">${s.nombre}</td>`;
                 for(let m=1; m<=12; m++) {
                     const p = allPagos.find(x => x.socioId === s.id && x.month === m);
-                    // MODIFICADO: Mostrar monto en lugar de X
                     html += `<td>${p ? p.amount : ''}</td>`;
                 }
                 html += `</tr>`;
@@ -573,15 +855,16 @@
             showLoading(false);
         }
 
-        // --- DASHBOARD USUARIO ---
+        // --- DASHBOARD USUARIO CON RECIBOS Y SOPORTE ---
         async function loadUserDashboard() {
             const name = document.getElementById('user-search-input').value;
             const socio = socios.find(s => s.nombre === name);
             if(!socio) return showToast("Nombre no válido");
             
+            currentUserSocioId = socio.id;
+            
             showLoading(true);
-            const snapP = await getPublicRef('pagos').where('socioId', '==', socio.id).get();
-            const pagos = snapP.docs.map(d => d.data());
+            const pagos = pagosCache.filter(p => p.socioId === socio.id);
             const snapA = await getPublicRef('asistencias').where('socioId', '==', socio.id).get();
             const asistencias = snapA.docs.map(d => d.data());
 
@@ -615,20 +898,135 @@
             });
             html += `</div>`;
             document.getElementById('user-dashboard-view').innerHTML = html;
+
+            // Cargar Recibos del Usuario
+            const recibosSocio = recibosCache.filter(r => r.socioId === socio.id);
+            const rList = document.getElementById('user-receipts-list');
+            rList.innerHTML = recibosSocio.length ? recibosSocio.map(r => `
+                <div class="item-row">
+                    <span>${r.date} - Bs.${r.total} (Folio: ${r.folio})</span>
+                    <button class="btn-green" onclick='openReceiptModal(${JSON.stringify(r)})'>Ver</button>
+                </div>
+            `).join("") : '<div style="padding:10px; color:#666;">No hay recibos digitales registrados.</div>';
+            document.getElementById('user-receipts-card').style.display = 'block';
+
+            // Activar chat
+            document.getElementById('user-support-card').style.display = 'block';
+            renderUserChat(socio.id);
+
             showLoading(false);
         }
 
-        // --- GESTIÓN REUNIONES ---
+        // --- SISTEMA DE MENSAJERÍA / SOPORTE ---
+        
+        function renderUserChat(sId) {
+            const chatBox = document.getElementById('user-chat-box');
+            const msgs = mensajesCache.filter(m => m.socioId === sId);
+            chatBox.innerHTML = msgs.map(m => `
+                <div class="chat-msg ${m.from==='user'?'msg-user':'msg-admin'}">
+                    ${m.text}
+                    <span class="msg-meta">${new Date(m.timestamp?.seconds*1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                </div>
+            `).join("");
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function sendUserMessage() {
+            const txt = document.getElementById('user-msg-input').value.trim();
+            if(!txt || !currentUserSocioId) return;
+            const socio = socios.find(s => s.id === currentUserSocioId);
+            await getPublicRef('mensajes').add({
+                socioId: currentUserSocioId,
+                socioName: socio.nombre,
+                text: txt,
+                from: 'user',
+                read: false,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('user-msg-input').value = "";
+        }
+
+        function renderAdminChatThreads() {
+            // Agrupar mensajes por socio para crear hilos
+            const threads = {};
+            mensajesCache.forEach(m => {
+                if(!threads[m.socioId]) threads[m.socioId] = { name: m.socioName, lastMsg: m.text, time: m.timestamp, unread: 0 };
+                threads[m.socioId].lastMsg = m.text;
+                threads[m.socioId].time = m.timestamp;
+                if(m.from === 'user' && !m.read) threads[m.socioId].unread++;
+            });
+
+            const list = document.getElementById('msg-threads-list');
+            list.innerHTML = Object.keys(threads).map(k => `
+                <div class="item-row" onclick="selectAdminChat('${k}')" style="cursor:pointer; ${selectedChatSocioId===k ? 'border-color:var(--accent); background:#151515;' : ''}">
+                    <div style="width:100%">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="font-weight:bold;">${threads[k].name}</span>
+                            ${threads[k].unread > 0 ? `<span class="badge badge-debt">${threads[k].unread}</span>` : ''}
+                        </div>
+                        <div style="font-size:0.7rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${threads[k].lastMsg}</div>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function selectAdminChat(sId) {
+            selectedChatSocioId = sId;
+            renderAdminChatThreads(); // Para actualizar estilo activo
+            const chatBox = document.getElementById('msg-admin-view');
+            const msgs = mensajesCache.filter(m => m.socioId === sId);
+            
+            chatBox.innerHTML = msgs.map(m => `
+                <div class="chat-msg ${m.from==='admin'?'msg-user':'msg-admin'}"> <!-- Invertido visualmente para admin -->
+                    <span style="font-size:0.6rem; color:#aaa; display:block; margin-bottom:2px;">${m.from==='user'?'Socio':'Directiva'}</span>
+                    ${m.text}
+                </div>
+            `).join("");
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Marcar leídos
+            msgs.filter(m => m.from === 'user' && !m.read).forEach(m => {
+                getPublicRef('mensajes').doc(m.id).update({read: true});
+            });
+        }
+
+        async function sendAdminReply() {
+            const txt = document.getElementById('msg-admin-reply').value.trim();
+            if(!txt || !selectedChatSocioId) return showToast("Seleccione chat o escriba mensaje");
+            const socio = socios.find(s => s.id === selectedChatSocioId);
+            await getPublicRef('mensajes').add({
+                socioId: selectedChatSocioId,
+                socioName: socio.nombre,
+                text: txt,
+                from: 'admin',
+                read: true,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('msg-admin-reply').value = "";
+        }
+
+
+        // --- GESTIÓN REUNIONES CON FILTRO ---
         async function loadAssist(aId, name) {
             document.getElementById('assist-card').style.display = 'block';
             document.getElementById('assist-title').innerText = name;
+            document.getElementById('assist-title').dataset.aid = aId; // Guardar ID actual
+            
             const snap = await getPublicRef('asistencias').where('actId', '==', aId).get();
             const asisDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            
+            // Render inicial
+            renderAssistTable(asisDocs, aId, name);
+        }
+
+        function renderAssistTable(asisDocs, aId, name, filterText = "") {
+            const sociosFiltrados = socios.filter(s => s.nombre.includes(filterText.toUpperCase()));
+            
             document.getElementById('assist-table').innerHTML = `
                 <table class="rep-table">
                     <thead><tr><th>Socio</th><th>Estado</th><th>Multa</th></tr></thead>
                     <tbody>
-                    ${socios.map(s => {
+                    ${sociosFiltrados.map(s => {
                         const asis = asisDocs.find(a => a.socioId === s.id);
                         const isPresent = !!asis;
                         const isFinePaid = asis?.finePaid === true;
@@ -643,18 +1041,40 @@
                 </table>`;
         }
 
+        // Filtro de asistencia en tiempo real
+        async function filterAssistTable() {
+            const filter = document.getElementById('assist-filter').value;
+            const aId = document.getElementById('assist-title').dataset.aid;
+            const name = document.getElementById('assist-title').innerText;
+            if(!aId) return;
+            
+            // Recargar datos frescos para asegurar consistencia
+            const snap = await getPublicRef('asistencias').where('actId', '==', aId).get();
+            const asisDocs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            renderAssistTable(asisDocs, aId, name, filter);
+        }
+
         async function toggleAsis(aId, sId, name) {
             const snap = await getPublicRef('asistencias').where('actId', '==', aId).where('socioId', '==', sId).get();
             if(snap.empty) await getPublicRef('asistencias').add({ actId: aId, socioId: sId, finePaid: false });
             else await snap.docs[0].ref.delete();
-            loadAssist(aId, name);
+            
+            // Refrescar manteniendo filtro
+            const filter = document.getElementById('assist-filter').value;
+            const snap2 = await getPublicRef('asistencias').where('actId', '==', aId).get();
+            const asisDocs = snap2.docs.map(d => ({id: d.id, ...d.data()}));
+            renderAssistTable(asisDocs, aId, name, filter);
         }
 
         async function toggleFinePaid(aId, sId, name) {
             const snap = await getPublicRef('asistencias').where('actId', '==', aId).where('socioId', '==', sId).get();
             if(snap.empty) await getPublicRef('asistencias').add({ actId: aId, socioId: sId, finePaid: true });
             else await snap.docs[0].ref.update({ finePaid: !snap.docs[0].data().finePaid });
-            loadAssist(aId, name);
+            
+            const filter = document.getElementById('assist-filter').value;
+            const snap2 = await getPublicRef('asistencias').where('actId', '==', aId).get();
+            const asisDocs = snap2.docs.map(d => ({id: d.id, ...d.data()}));
+            renderAssistTable(asisDocs, aId, name, filter);
         }
 
         // --- FUNCIONES COMUNES ---
@@ -669,10 +1089,30 @@
                     </div>
                 </div>`).join("");
         }
+        
         function renderGestiones() {
             const opts = gestiones.map(g => `<option value="${g.val}">${g.val}</option>`).join("");
             ['pay-year','rep-gen-year'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerHTML = opts; });
+            const yList = document.getElementById('cfg-years-list');
+            if(yList) yList.innerHTML = gestiones.map(g => `
+                <div class="item-row">
+                    <span>${g.val}</span>
+                    <button onclick="deleteYearSafe('${g.id}', ${g.val})" class="btn-ghost">🗑️</button>
+                </div>`).join("");
         }
+        
+        // Validación de seguridad para borrar años
+        async function deleteYearSafe(id, yearVal) {
+            const hasData = pagosCache.some(p => p.year === yearVal);
+            if(hasData) {
+                showToast(`Error: El año ${yearVal} tiene pagos registrados.`);
+                return;
+            }
+            openConfirm(`¿Eliminar gestión ${yearVal}?`, async () => {
+                await getPublicRef('gestiones').doc(id).delete();
+            });
+        }
+
         function renderActivities() {
             const list = document.getElementById('act-list');
             if(list) list.innerHTML = activities.map(a => `
@@ -685,21 +1125,6 @@
             const html = a => `<div class="notice-card">${auth.currentUser && document.getElementById('admin-panel').style.display==='block' ? `<button class="delete-notice-btn" onclick="deleteDoc('avisos','${a.id}')">🗑️</button>` : ''}<div class="notice-header"><div class="notice-title">📢 ${a.title}</div><small>${a.date}</small></div><div class="notice-body">${a.body}</div></div>`;
             if(document.getElementById('admin-notices-list')) document.getElementById('admin-notices-list').innerHTML = avisos.map(html).join("");
             if(document.getElementById('user-notices-list')) document.getElementById('user-notices-list').innerHTML = avisos.map(html).join("");
-        }
-
-        async function submitPayment() {
-            const socio = socios.find(s => s.nombre === document.getElementById('pay-name').value);
-            if(!socio) return showToast("Socio no encontrado");
-            const year = parseInt(document.getElementById('pay-year').value);
-            const month = parseInt(document.getElementById('pay-month-start').value);
-            const qty = parseInt(document.getElementById('pay-qty').value) || 1;
-            showLoading(true);
-            for(let i=0; i<qty; i++) {
-                let m = month + i, y = year;
-                while(m > 12) { m -= 12; y++; }
-                await getPublicRef('pagos').add({ socioId: socio.id, year: y, month: m, amount: 10, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-            }
-            showLoading(false); showToast("Cobro Exitoso"); loadDossierAdmin();
         }
 
         async function addSocio() { const n = document.getElementById('cfg-socio-name').value.trim().toUpperCase(); if(n) await getPublicRef('socios').add({ nombre: n }); document.getElementById('cfg-socio-name').value = ""; }
