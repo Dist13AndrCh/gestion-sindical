@@ -170,6 +170,51 @@
         .msg-user { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 0; }
         .msg-admin { align-self: flex-start; background: #222; color: #ddd; border-bottom-left-radius: 0; }
         .msg-meta { font-size: 0.7rem; opacity: 0.7; margin-top: 4px; display: block; text-align: right; }
+
+        /* INYECCIÓN DE ESTILOS PARA DEUDA (SOLICITADO) */
+        .debt-container {
+            margin-top: 25px;
+            padding: 20px;
+            background: #000;
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            text-align: center;
+            box-shadow: 0 0 15px var(--glow);
+            animation: pulseDebt 2s infinite;
+        }
+        
+        .debt-title {
+            color: #ccc;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .debt-amount {
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent);
+            letter-spacing: 1px;
+        }
+
+        .clean-slate {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(27, 94, 32, 0.15);
+            border: 1px solid var(--success);
+            border-radius: var(--radius);
+            text-align: center;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(27, 94, 32, 0.3);
+        }
+
+        @keyframes pulseDebt {
+            0% { box-shadow: 0 0 15px var(--glow); }
+            50% { box-shadow: 0 0 25px rgba(196, 28, 28, 0.6); }
+            100% { box-shadow: 0 0 15px var(--glow); }
+        }
     </style>
 </head>
 <body>
@@ -352,6 +397,23 @@
                         <h3 style="color:#888; font-size:0.8rem; margin-bottom:10px; text-transform:uppercase;">Gestión Detallada</h3>
                         <div id="admin-pay-list" class="pay-manage-list"></div>
                     </div>
+
+                    <!-- INYECCIÓN: LISTA DE RECIBOS DEL SOCIO SELECCIONADO -->
+                    <div id="admin-socio-receipts" class="pay-manage-section" style="display:none; margin-top: 15px; border-top: 1px dashed #333; padding-top:10px;">
+                        <h3 style="color:#888; font-size:0.8rem; margin-bottom:10px; text-transform:uppercase;">Recibos Emitidos</h3>
+                        <div id="admin-socio-receipts-list" class="pay-manage-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INYECCIÓN: BUSCADOR DE RECIBOS EMITIDOS (GLOBAL) -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <h2>Buscador de Recibos Emitidos</h2>
+                <div class="search-box">
+                    <input type="text" id="search-receipt-input" class="nav-input" placeholder="Escriba el nombre del socio para buscar facturas..." onkeyup="searchReceiptsAdmin()">
+                </div>
+                <div id="receipt-search-results">
+                    <p style="color:#666; text-align:center; padding:10px;">Los resultados aparecerán aquí.</p>
                 </div>
             </div>
         </div>
@@ -724,6 +786,27 @@
                     </div>`;
                 }).join("");
             }
+
+            // 3. Render LISTA DE RECIBOS DEL SOCIO (INYECCIÓN SOLICITADA)
+            const receiptsContainer = document.getElementById('admin-socio-receipts');
+            const receiptsListEl = document.getElementById('admin-socio-receipts-list');
+            
+            // Buscar recibos del socio en el cache (que ya se carga al inicio)
+            const recibosSocio = recibosCache.filter(r => r.socioId === socio.id);
+            
+            if (recibosSocio.length > 0) {
+                receiptsContainer.style.display = 'block';
+                receiptsListEl.innerHTML = recibosSocio.map(r => `
+                    <div class="pay-row" style="grid-template-columns: 1fr 1fr 1fr; gap:5px;">
+                        <span style="color:#888; font-size:0.75rem;">${r.date}</span>
+                        <span style="font-weight:bold; color:var(--success);">Bs. ${r.total}</span>
+                        <button class="btn-green" style="padding:2px 8px; font-size:0.7rem;" onclick='openReceiptModal(${JSON.stringify(r).replace(/'/g, "&#39;")})'>Ver Factura</button>
+                    </div>
+                `).join("");
+            } else {
+                receiptsContainer.style.display = 'none';
+                receiptsListEl.innerHTML = "";
+            }
         }
         
         // --- FUNCIÓN DE EDICIÓN DE PAGO (NUEVA UI) ---
@@ -889,6 +972,40 @@
             window.open(url, '_blank');
         }
 
+        // --- INYECCIÓN: LÓGICA DE BÚSQUEDA DE RECIBOS ---
+        function searchReceiptsAdmin() {
+            const term = document.getElementById('search-receipt-input').value.toUpperCase();
+            const resultsDiv = document.getElementById('receipt-search-results');
+            
+            if(!term) {
+                resultsDiv.innerHTML = '<p style="color:#666; text-align:center; padding:10px;">Escriba para buscar recibos...</p>';
+                return;
+            }
+
+            const matches = recibosCache.filter(r => r.socioName.toUpperCase().includes(term));
+            
+            if(matches.length === 0) {
+                resultsDiv.innerHTML = '<p style="color:#888; text-align:center; padding:10px;">No se encontraron recibos.</p>';
+                return;
+            }
+
+            let html = `<table class="rep-table" style="width:100%; margin-top:10px;">
+                <thead><tr><th>Fecha</th><th>Socio</th><th>Total</th><th>Método</th><th>Acción</th></tr></thead>
+                <tbody>`;
+            
+            matches.forEach(r => {
+                html += `<tr>
+                    <td>${r.date}</td>
+                    <td style="text-align:left;">${r.socioName}</td>
+                    <td>Bs. ${r.total}</td>
+                    <td>${r.method || 'N/A'}</td>
+                    <td><button class="btn-green" style="padding:4px 10px; font-size:0.7rem;" onclick='openReceiptModal(${JSON.stringify(r).replace(/'/g, "&#39;")})'>Ver Recibo</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            resultsDiv.innerHTML = html;
+        }
+
         // --- REPORTES ---
         async function generateIndReport() {
             const name = document.getElementById('rep-socio-name').value;
@@ -977,6 +1094,7 @@
 
             let totalPagados = pagos.length;
             let totalRestantes = (gestiones.length * 12) - totalPagados;
+            let totalDeuda = 0; // CONTADOR DE DEUDA INYECTADO
 
             let html = `
                 <div class="stat-grid">
@@ -997,13 +1115,39 @@
             activities.forEach(act => {
                 const asis = asistencias.find(a => a.actId === act.id);
                 const pagada = asis?.finePaid === true;
+                
+                // Lógica de cálculo de deuda: Si no hay registro (asis) es FALTA y se suma la multa
+                if (!asis) {
+                    totalDeuda += (parseFloat(act.fine) || 0);
+                }
+
                 html += `
                     <div class="item-row">
                         <span>${act.name} (${act.date})</span>
-                        <span>${asis ? '<span class="badge badge-paid">PRESENTE</span>' : (pagada ? '<span class="badge badge-paid">M. PAGADA</span>' : '<span class="badge badge-debt">M. PENDIENTE</span>')}</span>
+                        <span>
+                            ${asis ? '<span class="badge badge-paid">PRESENTE</span>' : 
+                             (pagada ? '<span class="badge badge-paid">M. PAGADA</span>' : 
+                             `<span class="badge badge-debt">FALTA - Bs.${act.fine}</span>`)}
+                        </span>
                     </div>`;
             });
-            html += `</div>`;
+            html += `</div>`; // Cierre card reuniones
+
+            // INYECCIÓN VISUAL DE DEUDA TOTAL
+            if (totalDeuda > 0) {
+                html += `
+                    <div class="debt-container">
+                        <div class="debt-title">Total Deuda Acumulada</div>
+                        <div class="debt-amount">Bs. ${totalDeuda}</div>
+                    </div>`;
+            } else {
+                html += `
+                    <div class="clean-slate">
+                        <h3>✅ ¡Felicidades!</h3>
+                        <p style="font-size:0.9rem; margin-top:5px; opacity:0.8;">Estás al día con tus obligaciones de asistencia.</p>
+                    </div>`;
+            }
+
             document.getElementById('user-dashboard-view').innerHTML = html;
 
             // Cargar Recibos del Usuario
