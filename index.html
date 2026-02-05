@@ -611,6 +611,9 @@
             });
             getPublicRef('recibos').orderBy('timestamp', 'desc').limit(50).onSnapshot(snap => {
                 recibosCache = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                // Auto-refrescar vistas si están activas
+                if(document.getElementById('admin-socio-receipts').style.display === 'block') loadDossierAdmin();
+                if(document.getElementById('receipt-search-results').innerHTML.includes('table')) searchReceiptsAdmin();
             });
             getPublicRef('mensajes').orderBy('timestamp', 'asc').onSnapshot(snap => {
                 mensajesCache = snap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -797,10 +800,11 @@
             if (recibosSocio.length > 0) {
                 receiptsContainer.style.display = 'block';
                 receiptsListEl.innerHTML = recibosSocio.map(r => `
-                    <div class="pay-row" style="grid-template-columns: 1fr 1fr 1fr; gap:5px;">
+                    <div class="pay-row" style="grid-template-columns: 1fr 1fr 1fr 0.5fr; gap:5px;">
                         <span style="color:#888; font-size:0.75rem;">${r.date}</span>
                         <span style="font-weight:bold; color:var(--success);">Bs. ${r.total}</span>
-                        <button class="btn-green" style="padding:2px 8px; font-size:0.7rem;" onclick='openReceiptModal(${JSON.stringify(r).replace(/'/g, "&#39;")})'>Ver Factura</button>
+                        <button class="btn-green" style="padding:2px 8px; font-size:0.7rem;" onclick='openReceiptModal(${JSON.stringify(r).replace(/'/g, "&#39;")})'>Ver</button>
+                        <button class="icon-btn delete" style="padding:2px 8px;" onclick="deleteReceipt('${r.id}', '${r.folio}')" title="Eliminar Factura">🗑️</button>
                     </div>
                 `).join("");
             } else {
@@ -850,6 +854,21 @@
                     showToast("Pago eliminado del historial");
                     // No hace falta llamar a loadDossierAdmin manual si el onSnapshot está bien configurado, 
                     // pero por seguridad UI lo hacemos en el snapshot listener.
+                } catch(e) {
+                    showToast("Error: " + e.message);
+                }
+                showLoading(false);
+            });
+        }
+
+        // --- NUEVA FUNCIÓN: ELIMINAR RECIBO (FACTURA) ---
+        function deleteReceipt(id, folio) {
+            openConfirm(`¿Eliminar factura folio ${folio}? Esto no elimina los pagos del historial, solo el comprobante.`, async () => {
+                showLoading(true);
+                try {
+                    await getPublicRef('recibos').doc(id).delete();
+                    showToast("Factura eliminada");
+                    // Las vistas se actualizarán automáticamente por el onSnapshot modificado
                 } catch(e) {
                     showToast("Error: " + e.message);
                 }
@@ -999,7 +1018,10 @@
                     <td style="text-align:left;">${r.socioName}</td>
                     <td>Bs. ${r.total}</td>
                     <td>${r.method || 'N/A'}</td>
-                    <td><button class="btn-green" style="padding:4px 10px; font-size:0.7rem;" onclick='openReceiptModal(${JSON.stringify(r).replace(/'/g, "&#39;")})'>Ver Recibo</button></td>
+                    <td>
+                        <button class="btn-green" style="padding:4px 10px; font-size:0.7rem;" onclick='openReceiptModal(${JSON.stringify(r).replace(/'/g, "&#39;")})'>Ver Recibo</button>
+                        <button class="btn-red" style="padding:4px 10px; font-size:0.7rem; margin-left:5px;" onclick="deleteReceipt('${r.id}', '${r.folio}')">🗑️</button>
+                    </td>
                 </tr>`;
             });
             html += '</tbody></table>';
